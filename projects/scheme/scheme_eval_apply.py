@@ -125,12 +125,12 @@ class Unevaluated:
         self.expr = expr
         self.env = env
 
-def complete_apply(procedure, args, env):
+def complete_apply(procedure, args, env):## tail-recursion
     """Apply procedure to args in env; ensure the result is not an Unevaluated."""
     validate_procedure(procedure)
-    val = scheme_apply(procedure, args, env)
+    val = scheme_apply(procedure, args, env)## 有可能调用procedure后返回的还是一个递归 这里可能要在optimized_eval中规定 这里调用procedure应该是eval函数
     if isinstance(val, Unevaluated):
-        return scheme_eval(val.expr, val.env)
+        return scheme_eval(val.expr, val.env) ##对thunk反复调用直到结果不是一个chunk而是一个值
     else:
         return val
 
@@ -140,18 +140,21 @@ def optimize_tail_calls(unoptimized_scheme_eval):
         """Evaluate Scheme expression EXPR in Frame ENV. If TAIL,
         return an Unevaluated containing an expression for further evaluation.
         """
-        if tail and not scheme_symbolp(expr) and not self_evaluating(expr):
+        if tail and not scheme_symbolp(expr) and not self_evaluating(expr):## 如果是tail_recursion则返回一个thunk？
             return Unevaluated(expr, env)
 
-        result = Unevaluated(expr, env)
+        result = Unevaluated(expr, env) ##?这里的目的是什么
         # BEGIN OPTIONAL PROBLEM 1
         "*** YOUR CODE HERE ***"
+        while isinstance(result, Unevaluated):
+            result= unoptimized_scheme_eval(result.expr, result.env)
+        return result
         # END OPTIONAL PROBLEM 1
     return optimized_eval
 
 
 
-
+## 这里的call和apply是互相递归使用
 
 
 
@@ -166,4 +169,4 @@ def optimize_tail_calls(unoptimized_scheme_eval):
 # Uncomment the following line to apply tail call optimization #
 ################################################################
 
-# scheme_eval = optimize_tail_calls(scheme_eval)
+scheme_eval = optimize_tail_calls(scheme_eval)
